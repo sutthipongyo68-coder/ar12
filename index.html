@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Bot: Coding Arcade</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Retro Arcade Vibe -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #050b14;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.15), transparent 70%),
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px, 20px 20px;
+        }
+
+        .arcade-font {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        /* Neon Glow Effects */
+        .neon-border-cyan {
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5), inset 0 0 10px rgba(6, 182, 212, 0.3);
+        }
+        
+        .neon-border-magenta {
+            box-shadow: 0 0 10px rgba(217, 70, 239, 0.5), inset 0 0 10px rgba(217, 70, 239, 0.3);
+        }
+
+        .neon-text-cyan {
+            text-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+        }
+
+        .neon-text-yellow {
+            text-shadow: 0 0 8px rgba(234, 179, 8, 0.8);
+        }
+
+        .laser-wall {
+            background: linear-gradient(135deg, #f43f5e 0%, #881337 100%);
+            box-shadow: 0 0 12px rgba(244, 63, 94, 0.8);
+            animation: pulse-laser 1.5s infinite alternate;
+        }
+
+        @keyframes pulse-laser {
+            0% { opacity: 0.8; box-shadow: 0 0 8px rgba(244, 63, 94, 0.6); }
+            100% { opacity: 1; box-shadow: 0 0 16px rgba(244, 63, 94, 1); }
+        }
+
+        .active-cmd {
+            transform: scale(1.15);
+            outline: 2px solid #38bdf8;
+            box-shadow: 0 0 12px #38bdf8;
+        }
+
+        /* Grid transition for smooth feel */
+        .cell-transition {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between overflow-x-hidden p-2 sm:p-4">
+
+    <!-- Header Section -->
+    <header class="max-w-4xl mx-auto w-full text-center my-2">
+        <h1 class="arcade-font text-xl sm:text-3xl text-cyan-400 tracking-wider neon-text-cyan mb-2">
+            🤖 CYBER BOT: ALGO-RUN
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400">
+            Program your bot using directional commands to reach the energy node!
+        </p>
+    </header>
+
+    <!-- Main Game Workspace -->
+    <main class="max-w-5xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-start my-auto">
+        
+        <!-- Left Panel: Game Board & Status -->
+        <section class="lg:col-span-7 flex flex-col items-center bg-slate-900/80 p-4 sm:p-6 rounded-xl border border-cyan-500/40 neon-border-cyan backdrop-blur">
+            
+            <!-- Stage Info & Score -->
+            <div class="w-full flex justify-between items-center mb-4 px-2">
+                <div class="text-sm font-bold text-cyan-300">
+                    STAGE: <span id="stage-display" class="text-white text-base">1 / 5</span>
+                </div>
+                <div class="text-sm font-bold text-yellow-400">
+                    TARGET: <span id="goal-coord" class="text-white"> (4, 4)</span>
+                </div>
+            </div>
+
+            <!-- Message Notification Box -->
+            <div id="message-box" class="text-center text-sm sm:text-lg font-bold h-8 mb-4 transition-all duration-200 flex items-center justify-center">
+                READY FOR COMMANDS...
+            </div>
+
+            <!-- Grid Container -->
+            <div id="grid-container" class="grid gap-1.5 p-3 bg-slate-950 rounded-lg border-2 border-slate-700 shadow-2xl relative">
+                <!-- Grid Cells Dynamic Generation -->
+            </div>
+
+            <!-- Level Selector & Control Bar -->
+            <div class="w-full flex justify-between items-center mt-5 pt-3 border-t border-slate-800">
+                <button onclick="changeLevel(-1)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded border border-slate-600 font-bold transition">
+                    ◀ PREV STAGE
+                </button>
+                <button onclick="resetCurrentLevel()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-yellow-400 text-xs rounded border border-slate-600 font-bold transition">
+                    🔄 RESTART STAGE
+                </button>
+                <button onclick="changeLevel(1)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded border border-slate-600 font-bold transition">
+                    NEXT STAGE ▶
+                </button>
+            </div>
+        </section>
+
+        <!-- Right Panel: Command Controls & Program Execution -->
+        <section class="lg:col-span-5 flex flex-col bg-slate-900/80 p-4 sm:p-6 rounded-xl border border-magenta-500/40 neon-border-magenta backdrop-blur">
+            <h2 class="arcade-font text-xs sm:text-sm text-fuchsia-400 mb-4 tracking-wide text-center">
+                // PROGRAMMING CONSOLE
+            </h2>
+
+            <!-- Command Input Buttons -->
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <button onclick="addCommand('turn-left')" class="flex flex-col items-center justify-center p-3 bg-purple-900/60 hover:bg-purple-800/80 border-2 border-purple-500 rounded-lg text-white font-bold transition transform active:scale-95 shadow-lg">
+                    <span class="text-2xl mb-1">↺</span>
+                    <span class="text-[10px] tracking-tighter">LEFT</span>
+                </button>
+                <button onclick="addCommand('forward')" class="flex flex-col items-center justify-center p-3 bg-cyan-900/60 hover:bg-cyan-800/80 border-2 border-cyan-400 rounded-lg text-cyan-200 font-bold transition transform active:scale-95 shadow-lg">
+                    <span class="text-2xl mb-1">⬆️</span>
+                    <span class="text-[10px] tracking-tighter">FORWARD</span>
+                </button>
+                <button onclick="addCommand('turn-right')" class="flex flex-col items-center justify-center p-3 bg-purple-900/60 hover:bg-purple-800/80 border-2 border-purple-500 rounded-lg text-white font-bold transition transform active:scale-95 shadow-lg">
+                    <span class="text-2xl mb-1">↻</span>
+                    <span class="text-[10px] tracking-tighter">RIGHT</span>
+                </button>
+            </div>
+
+            <!-- Command Queue Container -->
+            <div class="flex-1 min-h-[140px] bg-slate-950 p-3 rounded-lg border border-slate-800 mb-4 flex flex-col">
+                <div class="flex justify-between items-center mb-2 pb-1 border-b border-slate-800">
+                    <span class="text-xs text-slate-400 font-bold">INSTRUCTION QUEUE:</span>
+                    <span id="cmd-count" class="text-xs text-cyan-400 font-mono">0 / 15</span>
+                </div>
+                
+                <!-- Active Command Pills View -->
+                <div id="command-queue" class="flex flex-wrap gap-2 items-start content-start flex-1 overflow-y-auto max-h-[160px]">
+                    <!-- Dynamic badges here -->
+                </div>
+                
+                <p id="empty-queue-text" class="text-xs text-slate-600 text-center my-auto italic">
+                    Press command buttons above to program bot movements...
+                </p>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="grid grid-cols-2 gap-3">
+                <button id="clear-btn" onclick="clearCommands()" class="py-3 bg-rose-950/80 hover:bg-rose-900 border border-rose-600 text-rose-300 rounded-lg font-bold text-sm transition transform active:scale-95 shadow">
+                    🗑️ CLEAR QUEUE
+                </button>
+                <button id="run-btn" onclick="runAlgorithm()" class="py-3 bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-300 rounded-lg font-bold text-sm transition transform active:scale-95 shadow-lg neon-border-cyan">
+                    ▶ RUN CODE
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="max-w-4xl mx-auto w-full text-center text-slate-500 text-xs my-2">
+        <p>Cyber Bot Logic Engine • Built for Interactive Algorithmic Learning</p>
+    </footer>
+
+    <!-- JavaScript Logic & Audio Synth Implementation -->
+    <script>
+        // Web Audio Synthesizer (Zero External Dependencies)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTone(freq, duration, type = 'sine') {
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                // Audio fallback silence
+            }
+        }
+
+        const sounds = {
+            click: () => playTone(600, 0.05, 'square'),
+            move: () => {
+                playTone(300, 0.08, 'triangle');
+                setTimeout(() => playTone(450, 0.08, 'triangle'), 60);
+            },
+            turn: () => playTone(400, 0.06, 'sine'),
+            win: () => {
+                const notes = [400, 500, 600, 800];
+                notes.forEach((n, i) => setTimeout(() => playTone(n, 0.15, 'triangle'), i * 100));
+            },
+            lose: () => {
+                const notes = [300, 250, 200, 150];
+                notes.forEach((n, i) => setTimeout(() => playTone(n, 0.15, 'sawtooth'), i * 100));
+            }
+        };
+
+        // Game Configuration & Levels
+        const gridSize = 5;
+        const maxCommands = 15;
+        
+        // Directions: 0: East (👉), 1: South (👇), 2: West (👈), 3: North (👆)
+        const dirIcons = ['👉', '👇', '👈', '👆'];
+        
+        const levels = [
+            {
+                name: "Stage 1: Straight Ahead",
+                start: { x: 0, y: 0, dir: 0 },
+                goal: { x: 4, y: 0 },
+                walls: []
+            },
+            {
+                name: "Stage 2: Simple Turn",
+                start: { x: 0, y: 0, dir: 0 },
+                goal: { x: 3, y: 3 },
+                walls: [{ x: 3, y: 0 }, { x: 3, y: 1 }]
+            },
+            {
+                name: "Stage 3: Laser Obstacles",
+                start: { x: 0, y: 2, dir: 0 },
+                goal: { x: 4, y: 2 },
+                walls: [{ x: 2, y: 2 }, { x: 2, y: 1 }]
+            },
+            {
+                name: "Stage 4: Zig-Zag Maze",
+                start: { x: 0, y: 0, dir: 1 },
+                goal: { x: 4, y: 4 },
+                walls: [
+                    { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 },
+                    { x: 2, y: 4 }, { x: 3, y: 4 }
+                ]
+            },
+            {
+                name: "Stage 5: Master Circuit",
+                start: { x: 0, y: 4, dir: 3 },
+                goal: { x: 4, y: 0 },
+                walls: [
+                    { x: 1, y: 4 }, { x: 1, y: 3 }, { x: 1, y: 2 },
+                    { x: 3, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }
+                ]
+            }
+        ];
+
+        // Dynamic State Variables
+        let currentLevelIndex = 0;
+        let robot = { x: 0, y: 0, dir: 0 };
+        let commands = [];
+        let isRunning = false;
+
+        // Init & Level Loader
+        function initLevel() {
+            const level = levels[currentLevelIndex];
+            robot = { ...level.start };
+            
+            document.getElementById('stage-display').innerText = `${currentLevelIndex + 1} / ${levels.length}`;
+            document.getElementById('goal-coord').innerText = `(${level.goal.x}, ${level.goal.y})`;
+            
+            showMessage(`STAGE ${currentLevelIndex + 1}: ${level.name.toUpperCase()}`, "text-cyan-400");
+            renderBoard();
+        }
+
+        function resetCurrentLevel() {
+            if (isRunning) return;
+            sounds.click();
+            initLevel();
+        }
+
+        function changeLevel(delta) {
+            if (isRunning) return;
+            const newIndex = currentLevelIndex + delta;
+            if (newIndex >= 0 && newIndex < levels.length) {
+                sounds.click();
+                currentLevelIndex = newIndex;
+                clearCommands();
+                initLevel();
+            }
+        }
+
+        // Render Grid Board
+        function renderBoard() {
+            const container = document.getElementById('grid-container');
+            container.style.gridTemplateColumns = `repeat(${gridSize}, minmax(0, 1fr))`;
+            container.innerHTML = '';
+
+            const level = levels[currentLevelIndex];
+
+            // Render grid by row Y (0 at top) and column X (0 at left)
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'w-12 h-12 sm:w-16 sm:h-16 rounded flex items-center justify-center text-xl font-bold relative cell-transition border border-slate-800/80 bg-slate-900/50';
+
+                    const isRobotHere = robot.x === x && robot.y === y;
+                    const isGoalHere = level.goal.x === x && level.goal.y === y;
+                    const isWallHere = level.walls.some(w => w.x === x && w.y === y);
+
+                    if (isWallHere) {
+                        cell.className += ' laser-wall border-rose-500';
+                        cell.innerHTML = '<span class="text-xs text-rose-200 opacity-70">⚡</span>';
+                    } else if (isGoalHere && !isRobotHere) {
+                        cell.className += ' bg-amber-950/40 border-amber-500/60 shadow-[inset_0_0_10px_rgba(245,158,11,0.3)]';
+                        cell.innerHTML = '<span class="animate-bounce">🎯</span>';
+                    }
+
+                    if (isRobotHere) {
+                        cell.className += ' bg-cyan-950 border-cyan-400 neon-border-cyan';
+                        cell.innerHTML = `<span class="transform transition-transform duration-300 scale-125">${dirIcons[robot.dir]}</span>`;
+                    }
+
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        // Queue Management & Controls
+        function addCommand(cmd) {
+            if (isRunning) return;
+            if (commands.length >= maxCommands) {
+                showMessage("COMMAND QUEUE FULL!", "text-amber-400");
+                sounds.click();
+                return;
+            }
+            sounds.click();
+            commands.push(cmd);
+            updateCommandUI();
+        }
+
+        function clearCommands() {
+            if (isRunning) return;
+            sounds.click();
+            commands = [];
+            updateCommandUI();
+        }
+
+        function updateCommandUI(activeIdx = -1) {
+            const queue = document.getElementById('command-queue');
+            const emptyText = document.getElementById('empty-queue-text');
+            const countText = document.getElementById('cmd-count');
+            
+            queue.innerHTML = '';
+            countText.innerText = `${commands.length} / ${maxCommands}`;
+
+            if (commands.length === 0) {
+                emptyText.style.display = 'block';
+            } else {
+                emptyText.style.display = 'none';
+                commands.forEach((cmd, index) => {
+                    const cmdEl = document.createElement('span');
+                    let icon = '';
+                    let styles = '';
+                    
+                    if (cmd === 'forward') { icon = '⬆️ FORWARD'; styles = 'bg-cyan-950 text-cyan-300 border-cyan-500'; }
+                    if (cmd === 'turn-left') { icon = '↺ LEFT'; styles = 'bg-purple-950 text-purple-300 border-purple-500'; }
+                    if (cmd === 'turn-right') { icon = '↻ RIGHT'; styles = 'bg-purple-950 text-purple-300 border-purple-500'; }
+                    
+                    const isActive = index === activeIdx ? 'active-cmd' : '';
+                    cmdEl.className = `px-2.5 py-1 rounded border font-bold text-xs ${styles} ${isActive} shadow transition-all duration-150 flex items-center gap-1`;
+                    cmdEl.innerText = `${icon}`;
+                    queue.appendChild(cmdEl);
+                });
+            }
+        }
+
+        function showMessage(msg, colorClass) {
+            const msgBox = document.getElementById('message-box');
+            msgBox.className = `text-center text-sm sm:text-lg font-bold h-8 mb-4 transition-all duration-200 flex items-center justify-center ${colorClass}`;
+            msgBox.innerText = msg;
+        }
+
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+
+        async function resetLevelWithDelay(message) {
+            sounds.lose();
+            showMessage(message, "text-rose-500");
+            await delay(1500); 
+            initLevel();       
+        }
+
+        // Main Algorithm Execution Engine
+        async function runAlgorithm() {
+            if (isRunning || commands.length === 0) return;
+            isRunning = true;
+            document.getElementById('run-btn').disabled = true;
+            document.getElementById('clear-btn').disabled = true;
+            showMessage(">> EXECUTING PROGRAM...", "text-cyan-400 neon-text-cyan");
+
+            const level = levels[currentLevelIndex];
+            
+            robot = { ...level.start };
+            renderBoard();
+            await delay(500);
+
+            for (let i = 0; i < commands.length; i++) {
+                updateCommandUI(i);
+                const cmd = commands[i];
+                
+                if (cmd === 'forward') {
+                    let nextX = robot.x;
+                    let nextY = robot.y;
+                    
+                    // 0: East (+X), 1: South (+Y), 2: West (-X), 3: North (-Y)
+                    if (robot.dir === 0) nextX++; 
+                    if (robot.dir === 1) nextY++; 
+                    if (robot.dir === 2) nextX--; 
+                    if (robot.dir === 3) nextY--; 
+
+                    if (nextX < 0 || nextX >= gridSize || nextY < 0 || nextY >= gridSize) {
+                        renderBoard();
+                        await resetLevelWithDelay("GAME OVER! OUT OF BOUNDS!");
+                        document.getElementById('run-btn').disabled = false;
+                        document.getElementById('clear-btn').disabled = false;
+                        isRunning = false;
+                        updateCommandUI();
+                        return;
+                    }
+
+                    const isWall = level.walls.some(w => w.x === nextX && w.y === nextY);
+                    if (isWall) {
+                        renderBoard();
+                        await resetLevelWithDelay("CRASH! HIT A LASER WALL!");
+                        document.getElementById('run-btn').disabled = false;
+                        document.getElementById('clear-btn').disabled = false;
+                        isRunning = false;
+                        updateCommandUI();
+                        return;
+                    }
+
+                    robot.x = nextX;
+                    robot.y = nextY;
+                    sounds.move();
+
+                } else if (cmd === 'turn-left') {
+                    robot.dir = (robot.dir + 3) % 4; 
+                    sounds.turn();
+                } else if (cmd === 'turn-right') {
+                    robot.dir = (robot.dir + 1) % 4; 
+                    sounds.turn();
+                }
+
+                renderBoard();
+                await delay(450);
+            }
+
+            updateCommandUI();
+
+            if (robot.x === level.goal.x && robot.y === level.goal.y) {
+                sounds.win();
+                
+                if (currentLevelIndex < levels.length - 1) {
+                    showMessage("MISSION ACCOMPLISHED! 🎉", "text-emerald-400 neon-text-cyan");
+                    await delay(1800);
+                    currentLevelIndex++;
+                    clearCommands();
+                    initLevel();
+                } else {
+                    showMessage("🏆 YOU WIN! ALL STAGES CLEARED!", "text-yellow-300 neon-text-yellow");
+                }
+            } else {
+                await resetLevelWithDelay("MISSION FAILED! GOAL NOT REACHED!");
+            }
+            
+            document.getElementById('run-btn').disabled = false;
+            document.getElementById('clear-btn').disabled = false;
+            isRunning = false;
+        }
+
+        // Initialize Level on Load
+        initLevel();
+    </script>
+</body>
+</html>
